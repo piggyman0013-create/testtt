@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>ยืนยันสถานะผู้ประกอบวิชาชีพ</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Prompt -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- LINE LIFF SDK -->
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Prompt', 'sans-serif'] },
+          colors: { line: '#06C755' }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background: linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%); min-height: 100vh; font-family: 'Prompt', sans-serif; }
+    .glass-card { background: rgba(255,255,255,.95); backdrop-filter: blur(10px); box-shadow: 0 10px 25px -5px rgba(0,0,0,.05), 0 8px 10px -6px rgba(0,0,0,.05); }
+  </style>
+</head>
+<body class="p-3 sm:p-6 flex justify-center items-start text-gray-800">
+
+  <div class="w-full max-w-md mx-auto pb-12">
+
+    <!-- Loading Screen -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-white bg-opacity-90 z-50 flex flex-col items-center justify-center transition-opacity duration-300">
+      <div class="w-16 h-16 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin"></div>
+      <p class="mt-4 text-emerald-800 font-medium tracking-wide">กำลังเชื่อมต่อ LINE...</p>
+    </div>
+
+    <!-- Header -->
+    <div class="glass-card rounded-2xl p-6 mb-5 border border-emerald-100/80 text-center relative overflow-hidden shadow-sm">
+      <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-2xl mx-auto flex items-center justify-center text-2xl mb-3 shadow-inner">
+        <i class="fa-solid fa-shield-halved"></i>
+      </div>
+      <h1 class="text-xl font-bold text-gray-800">ยืนยันสถานะบุคลากรทางการแพทย์</h1>
+      <p class="text-xs text-gray-500 mt-1">โปรดยืนยัน 3 ข้อด้านล่างก่อนรับข้อมูลเชิงวิชาการ</p>
+
+      <div id="profileBadge" class="mt-4 inline-flex items-center gap-3 bg-emerald-50 border border-emerald-200/70 px-4 py-2 rounded-full text-left">
+        <img id="userPicture" class="w-8 h-8 rounded-full border border-emerald-300 object-cover" src="https://via.placeholder.com/150" alt="Avatar" />
+        <div class="leading-tight">
+          <div class="text-xs text-gray-400">เข้าสู่ระบบด้วย LINE</div>
+          <div id="displayNameText" class="text-sm font-semibold text-emerald-900 truncate max-w-[200px]">กำลังโหลด...</div>
+        </div>
+        <i class="fa-brands fa-line text-line text-lg ml-1"></i>
+      </div>
+    </div>
+
+    <!-- FORM (state: filling) -->
+    <form id="registrationForm" class="glass-card rounded-2xl p-6 border border-emerald-100/80 space-y-4" novalidate>
+      <input type="hidden" id="userId" name="userId" value="" />
+      <input type="hidden" id="displayName" name="displayName" value="" />
+      <input type="hidden" id="pdpaConsentAt" name="pdpaConsentAt" value="" />
+
+      <!-- Checkbox 1: ยืนยันสถานะบุคลากรทางการแพทย์ -->
+      <label class="flex items-start gap-3 p-3.5 bg-emerald-50/60 border border-emerald-200 rounded-xl cursor-pointer">
+        <input type="checkbox" id="isHcp" name="isHcp" required class="mt-0.5 w-4 h-4 accent-emerald-600 shrink-0" />
+        <span class="text-sm font-medium text-gray-700">ข้าพเจ้าเป็นบุคลากรทางการแพทย์หรือสาธารณสุข (แพทย์ พยาบาล เภสัชกร หรือผู้ประกอบวิชาชีพที่มีสภาวิชาชีพรับรอง)</span>
+      </label>
+
+      <!-- PDPA Consent -->
+      <div class="bg-gray-50 border border-gray-200 rounded-xl p-3.5 max-h-32 overflow-y-auto text-[11.5px] text-gray-500 leading-relaxed">
+        <p class="mb-2"><strong class="text-gray-700">วัตถุประสงค์:</strong> บริษัท เอิร์ธ ไลน์ จำกัด เก็บรวบรวมข้อมูลบัญชี LINE (ชื่อที่แสดงและรหัสประจำตัว) เพื่อยืนยันสถานะบุคลากรทางการแพทย์ก่อนเข้าถึงข้อมูลเชิงวิชาการเกี่ยวกับเครื่องมือแพทย์ผ่าน LINE Official Account</p>
+        <p class="mb-2"><strong class="text-gray-700">ระยะเวลาเก็บข้อมูล:</strong> ตลอดระยะเวลาที่ท่านติดตามช่องทางนี้ และต่อเนื่องอีก 2 ปี หลังพ้นสมาชิกภาพ</p>
+        <p><strong class="text-gray-700">สิทธิของท่าน:</strong> ขอเข้าถึง แก้ไข หรือลบข้อมูลได้ที่ [ระบุช่องทางติดต่อ DPO]</p>
+      </div>
+      <label class="flex items-start gap-2.5 cursor-pointer">
+        <input type="checkbox" id="pdpaConsent" name="pdpaConsent" required class="mt-0.5 w-4 h-4 accent-emerald-600 shrink-0" />
+        <span class="text-xs font-medium text-gray-700">ข้าพเจ้าได้อ่านและยินยอมให้เก็บรวบรวม ใช้ข้อมูลส่วนบุคคลข้างต้น</span>
+      </label>
+
+      <!-- Checkbox 3: ยืนยันความถูกต้อง -->
+      <label class="flex items-start gap-2.5 cursor-pointer">
+        <input type="checkbox" id="confirmTrue" name="confirmTrue" required class="mt-0.5 w-4 h-4 accent-emerald-600 shrink-0" />
+        <span class="text-xs font-medium text-gray-700">ข้าพเจ้ายืนยันว่าข้อมูลข้างต้นเป็นความจริงทุกประการ หากตรวจสอบพบว่าไม่เป็นความจริง บริษัทฯ สงวนสิทธิ์ยกเลิกการเป็นสมาชิกทันที</span>
+      </label>
+
+      <button type="submit" id="btnSubmit"
+        class="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-medium rounded-xl shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all">
+        <i class="fa-solid fa-check"></i>
+        <span>ยืนยันตัวตน</span>
+      </button>
+    </form>
+
+    <!-- SUCCESS STATE (state: done — shown after submit, hidden by default) -->
+    <div id="successCard" class="glass-card rounded-2xl p-7 border border-emerald-100/80 text-center hidden">
+      <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full mx-auto flex items-center justify-center text-2xl mb-4">
+        <i class="fa-solid fa-check"></i>
+      </div>
+      <h2 class="text-lg font-bold text-gray-800 mb-1">ยืนยันตัวตนสำเร็จ</h2>
+      <p class="text-sm text-gray-500 mb-6">ขอบคุณครับ ท่านสามารถรับข้อมูลเชิงวิชาการผ่าน LINE OA ได้ทันที</p>
+      <a id="surveyLink" href="#" target="_blank" rel="noopener"
+        class="inline-flex items-center justify-center gap-2 w-full py-3 px-4 bg-white border-2 border-emerald-600 text-emerald-700 font-medium rounded-xl hover:bg-emerald-50 transition-all mb-3">
+        <i class="fa-regular fa-clipboard"></i> แบบสำรวจความสนใจสินค้า (ไม่บังคับ)
+      </a>
+      <button id="btnClose" class="text-xs text-gray-400 underline">ปิดหน้าต่าง</button>
+    </div>
+
+  </div>
+
+  <script>
+    // ==========================================
+    // ⚙️ CONFIGURATION
+    // ==========================================
+    const CONFIG = {
+      LIFF_ID: "YOUR_LIFF_ID_HERE",
+      GAS_WEBAPP_URL: "https://script.google.com/macros/s/AKfycbwhyYTaI2bG7a9O-c4Z9-S_gQQ0y1RUDxsl2YnVOlLkbvK77k-9i17qh0Nkx6IoT2z5/exec",
+      // ลิงก์ Google Form สำรวจความสนใจสินค้า (สร้างแยกต่างหาก ดูวิธีใน README)
+      SURVEY_FORM_URL: "https://docs.google.com/forms/d/e/1FAIpQLSdX-sOPsRZWwem7KTnlU5eUku8veWOXj_finxlN49kpVPy89Q/viewform",
+      // ชื่อ URL parameter ที่ฟอร์มสำรวจใช้รับค่า LINE userId (ดูวิธีหา entry ID ใน README)
+      SURVEY_FORM_USERID_PARAM: "entry.XXXXXXXXX"
+    };
+
+    let currentUserId = "";
+    let currentDisplayName = "";
+
+    // ==========================================
+    // 📲 INITIALIZE LINE LIFF SDK
+    // ==========================================
+    async function main() {
+      try {
+        if (!CONFIG.LIFF_ID || CONFIG.LIFF_ID === "YOUR_LIFF_ID_HERE") {
+          currentUserId = "U_DEMO_PREVIEW_USER";
+          currentDisplayName = "คุณหมอทดสอบระบบ (Demo)";
+          document.getElementById("userId").value = currentUserId;
+          document.getElementById("displayName").value = currentDisplayName;
+          document.getElementById("displayNameText").textContent = currentDisplayName;
+          document.getElementById("userPicture").src = "https://ui-avatars.com/api/?name=Doctor+Demo&background=059669&color=fff";
+          document.getElementById("loadingOverlay").classList.add("opacity-0", "pointer-events-none");
+          return;
+        }
+
+        await liff.init({ liffId: CONFIG.LIFF_ID });
+        if (!liff.isLoggedIn()) { liff.login(); return; }
+
+        const profile = await liff.getProfile();
+        currentUserId = profile.userId || "";
+        currentDisplayName = profile.displayName || "LINE User";
+        document.getElementById("userId").value = currentUserId;
+        document.getElementById("displayName").value = currentDisplayName;
+        document.getElementById("displayNameText").textContent = currentDisplayName;
+        if (profile.pictureUrl) document.getElementById("userPicture").src = profile.pictureUrl;
+
+        document.getElementById("loadingOverlay").classList.add("opacity-0", "pointer-events-none");
+      } catch (err) {
+        console.error("LIFF Init Error:", err);
+        document.getElementById("loadingOverlay").classList.add("opacity-0", "pointer-events-none");
+        Swal.fire({ icon: 'warning', title: 'ไม่สามารถดึงข้อมูล LINE ได้', text: 'กรุณาเปิดผ่าน LINE Application', confirmButtonColor: '#059669' });
+      }
+    }
+    main();
+
+    // ==========================================
+    // 🚀 SUBMIT HANDLER
+    // ==========================================
+    document.getElementById("registrationForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      const isHcp = document.getElementById("isHcp").checked;
+      const pdpaConsent = document.getElementById("pdpaConsent").checked;
+      const confirmTrue = document.getElementById("confirmTrue").checked;
+
+      if (!isHcp) {
+        Swal.fire({ icon: 'warning', title: 'สำหรับบุคลากรทางการแพทย์เท่านั้น', text: 'กรุณายืนยันว่าท่านเป็นบุคลากรทางการแพทย์หรือสาธารณสุข', confirmButtonColor: '#059669' });
+        return;
+      }
+      if (!pdpaConsent) {
+        Swal.fire({ icon: 'warning', title: 'กรุณายืนยันความยินยอม PDPA', confirmButtonColor: '#059669' });
+        return;
+      }
+      if (!confirmTrue) {
+        Swal.fire({ icon: 'warning', title: 'กรุณายืนยันความถูกต้องของข้อมูล', confirmButtonColor: '#059669' });
+        return;
+      }
+
+      document.getElementById("pdpaConsentAt").value = new Date().toISOString();
+
+      const payload = {
+        isHcp: "ยืนยัน",
+        confirmTrue: "ยืนยัน",
+        userId: currentUserId,
+        displayName: currentDisplayName,
+        pdpaConsent: "ยินยอม",
+        pdpaConsentAt: document.getElementById("pdpaConsentAt").value
+      };
+
+      Swal.fire({ title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+      try {
+        if (!CONFIG.GAS_WEBAPP_URL || CONFIG.GAS_WEBAPP_URL === "YOUR_GOOGLE_APPS_SCRIPT_WEBAPP_URL_HERE") {
+          setTimeout(() => { Swal.close(); showSuccess(); }, 800);
+          return;
+        }
+
+        const response = await fetch(CONFIG.GAS_WEBAPP_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify(payload),
+        });
+        const result = await response.json();
+
+        if (result.status === "success") {
+          Swal.close();
+          showSuccess();
+        } else {
+          throw new Error(result.message || 'บันทึกข้อมูลไม่สำเร็จ');
+        }
+      } catch (err) {
+        console.error("Submission Error:", err);
+        Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: 'ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่อีกครั้ง', confirmButtonColor: '#059669' });
+      }
+    });
+
+    function showSuccess() {
+      document.getElementById("registrationForm").classList.add("hidden");
+      document.getElementById("successCard").classList.remove("hidden");
+
+      // ต่อ URL ของ Google Form สำรวจ พร้อมแนบ LINE userId ไปเป็น pre-fill (ถ้าตั้งค่า entry ID ไว้)
+      let surveyUrl = CONFIG.SURVEY_FORM_URL;
+      if (surveyUrl && surveyUrl !== "YOUR_GOOGLE_FORM_URL_HERE" && CONFIG.SURVEY_FORM_USERID_PARAM) {
+        const sep = surveyUrl.includes("?") ? "&" : "?";
+        surveyUrl += `${sep}${CONFIG.SURVEY_FORM_USERID_PARAM}=${encodeURIComponent(currentUserId)}`;
+      }
+      document.getElementById("surveyLink").href = surveyUrl;
+    }
+
+    document.getElementById("btnClose").addEventListener("click", function () {
+      if (typeof liff !== "undefined" && liff.isInClient && liff.isInClient()) {
+        liff.closeWindow();
+      } else {
+        window.close();
+      }
+    });
+  </script>
+</body>
+</html>
